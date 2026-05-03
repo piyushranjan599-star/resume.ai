@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0A0A0F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ResumeAI" />
+  <meta name="description" content="AI-powered resume analyzer. Get your match score, keyword gaps, and actionable fixes instantly." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>ResumeAI — Smart Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #00FF94;
+      --bg: #0A0A0F;
+      --card: #111118;
+      --border: #1E1E2E;
+      --muted: #555570;
+      --text: #E8E8F0;
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background-image:
+        radial-gradient(ellipse at 15% 0%, rgba(0,255,148,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%, rgba(0,80,255,0.05) 0%, transparent 55%);
+      padding-bottom: calc(80px + var(--safe-bottom));
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      padding: calc(14px + var(--safe-top)) 20px 14px;
+      background: rgba(10,10,15,0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: blink 2.2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    @keyframes blink {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:.5; transform:scale(.8); }
+    }
+
+    .logo {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px; font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .logo span { color: var(--accent); }
+
+    .badge {
+      margin-left: auto;
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: .12em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 3px 9px; border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ── INSTALL BANNER ── */
+    #install-banner {
+      display: none;
+      margin: 12px 16px 0;
+      background: rgba(0,255,148,0.08);
+      border: 1px solid rgba(0,255,148,0.22);
+      border-radius: 12px;
+      padding: 12px 16px;
+      align-items: center; gap: 10px;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner p { font-size: 13px; color: #80FFB8; flex: 1; line-height: 1.4; }
+    #install-btn {
+      background: var(--accent); color: #000;
+      border: none; border-radius: 8px;
+      padding: 8px 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #dismiss-btn {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 18px; padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 48px 20px 32px;
+    }
+    .hero-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; letter-spacing: .2em;
+      color: var(--accent); text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 9vw, 60px);
+      font-weight: 800; line-height: 1.05;
+      letter-spacing: -.02em; margin-bottom: 12px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p {
+      font-size: 15px; color: var(--muted);
+      max-width: 360px; margin: 0 auto; line-height: 1.6;
+    }
+
+    /* ── MAIN ── */
+    main {
+      max-width: 860px; margin: 0 auto;
+      padding: 0 16px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    /* ── STEP CARDS ── */
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: border-color .2s;
+    }
+    .step-card:focus-within { border-color: rgba(0,255,148,.3); }
+
+    .step-top { display: flex; align-items: center; gap: 10px; }
+    .step-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: .15em; color: var(--muted);
+      text-transform: uppercase;
+    }
+    .step-title { font-size: 15px; font-weight: 700; }
+
+    textarea {
+      width: 100%;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px; line-height: 1.7;
+      padding: 12px; resize: vertical;
+      min-height: 160px; outline: none;
+      transition: border-color .2s, background .2s;
+      -webkit-appearance: none;
+    }
+    textarea:focus {
+      border-color: rgba(0,255,148,.35);
+      background: rgba(0,255,148,.025);
+    }
+    textarea::placeholder { color: var(--muted); }
+
+    /* char count */
+    .char-count {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      text-align: right; margin-top: -4px;
+    }
+
+    /* ── ANALYZE BUTTON ── */
+    #analyze-btn {
+      width: 100%; padding: 18px;
+      background: var(--accent); color: #000;
+      border: none; border-radius: 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 17px; font-weight: 800;
+      letter-spacing: .02em; cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #analyze-btn:active:not(:disabled) { transform: scale(.98); }
+    #analyze-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(0,0,0,.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ERROR ── */
+    .error-box {
+      background: rgba(255,80,80,.08);
+      border: 1px solid rgba(255,80,80,.2);
+      border-radius: 12px; padding: 14px 18px;
+      color: #FF8080; font-size: 14px; text-align: center;
+      display: none;
+    }
+    .error-box.show { display: block; }
+
+    /* ── RESULTS ── */
+    #results {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      display: none;
+      animation: fadeUp .4s ease;
+    }
+    #results.show { display: block; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    .results-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .results-title { font-size: 16px; font-weight: 800; }
+
+    .score-block { text-align: right; }
+    .score-num {
+      font-family: 'Space Mono', monospace;
+      font-size: 30px; font-weight: 700;
+      line-height: 1;
+    }
+    .score-lbl {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: .12em;
+      color: var(--muted); margin-top: 2px;
+    }
+    .bar-wrap {
+      height: 5px; background: var(--border);
+      border-radius: 99px; overflow: hidden;
+      margin-top: 6px; width: 100px;
+      margin-left: auto;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 99px;
+      transition: width 1.2s cubic-bezier(.22,1,.36,1);
+    }
+
+    .results-body {
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .sec-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px; letter-spacing: .2em;
+      color: var(--accent); text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .verdict {
+      padding: 14px 16px; border-radius: 12px;
+      font-size: 14px; line-height: 1.65;
+      font-weight: 600; border: 1px solid;
+    }
+    .verdict-good { background:rgba(0,255,148,.06); border-color:rgba(0,255,148,.22); color:#80FFB8; }
+    .verdict-ok   { background:rgba(255,200,0,.06);  border-color:rgba(255,200,0,.22);  color:#FFD060; }
+    .verdict-bad  { background:rgba(255,80,80,.06);  border-color:rgba(255,80,80,.22);  color:#FF8080; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .tag {
+      padding: 5px 11px; border-radius: 20px;
+      font-size: 11px; font-family: 'Space Mono', monospace;
+    }
+    .tag-match { background:rgba(0,255,148,.1); color:var(--accent); border:1px solid rgba(0,255,148,.25); }
+    .tag-miss  { background:rgba(255,80,80,.08);  color:#FF6060;       border:1px solid rgba(255,80,80,.2); }
+
+    .sug-list { display:flex; flex-direction:column; gap:9px; }
+    .sug-item {
+      display:flex; gap:11px; align-items:flex-start;
+      padding:13px; border-radius:10px;
+      background:rgba(255,255,255,.025);
+      border:1px solid var(--border);
+      font-size:13px; line-height:1.6; color:#B0B0CC;
+    }
+    .sug-icon { font-size:15px; flex-shrink:0; margin-top:1px; }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      letter-spacing: .08em;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <div class="logo">Resume<span>AI</span></div>
+  <div class="badge">POWERED BY CLAUDE</div>
+</header>
+
+<div id="install-banner">
+  <p>📱 Add ResumeAI to your home screen for quick access!</p>
+  <button id="install-btn">Install</button>
+  <button id="dismiss-btn">✕</button>
+</div>
+
+<div class="hero">
+  <div class="hero-label">AI Resume Analyzer</div>
+  <h1>Get hired<br /><em>faster.</em></h1>
+  <p>Paste your resume + job description. Get an instant AI score, keyword gaps &amp; actionable fixes.</p>
+</div>
+
+<main>
+  <div class="step-card">
+    <div class="step-top">
+      <span class="step-num">Step 01</span>
+      <span class="step-title">Your Resume</span>
+    </div>
+    <textarea id="resume-input" placeholder="Paste your full resume text here..." oninput="updateCount('resume-count', this.value)"></textarea>
+    <div class="char-count" id="resume-count">0 characters</div>
+  </div>
+
+  <div class="step-card">
+    <div class="step-top">
+      <span class="step-num">Step 02</span>
+      <span class="step-title">Job Description</span>
+    </div>
+    <textarea id="job-input" placeholder="Paste the job description you're applying for..." oninput="updateCount('job-count', this.value)"></textarea>
+    <div class="char-count" id="job-count">0 characters</div>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+
+  <button id="analyze-btn" onclick="analyze()">
+    ⚡ Analyze My Resume
+  </button>
+
+  <div id="results">
+    <div class="results-header">
+      <div class="results-title">Analysis Complete</div>
+      <div class="score-block">
+        <div class="score-num" id="score-num">—</div>
+        <div class="score-lbl">MATCH SCORE</div>
+        <div class="bar-wrap"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="results-body">
+      <div id="verdict-box" class="verdict verdict-ok"></div>
+      <div id="matched-section">
+        <div class="sec-title">✅ Matched Keywords</div>
+        <div class="tag-row" id="matched-tags"></div>
+      </div>
+      <div id="missing-section">
+        <div class="sec-title">❌ Missing Keywords</div>
+        <div class="tag-row" id="missing-tags"></div>
+      </div>
+      <div id="suggestions-section">
+        <div class="sec-title">💡 How to Improve</div>
+        <div class="sug-list" id="sug-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Built with Claude AI &nbsp;·&nbsp; <a href="https://anthropic.com" target="_blank">Anthropic</a>
+    <br /><br />
+    Made by <span style="color: var(--accent); font-weight: 700;">Piyush</span>
+  </footer>
+</main>
+
+<script>
+  // ── PWA Service Worker Registration ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(r => console.log('SW registered:', r.scope))
+        .catch(e => console.log('SW error:', e));
+    });
+  }
+
+  // ── Install Prompt ──
+  let deferredPrompt;
+  const banner = document.getElementById('install-banner');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    banner.classList.add('show');
+  });
+
+  document.getElementById('install-btn').onclick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.classList.remove('show');
+  };
+
+  document.getElementById('dismiss-btn').onclick = () => {
+    banner.classList.remove('show');
+  };
+
+  // ── Char counter ──
+  function updateCount(id, val) {
+    document.getElementById(id).textContent = val.length.toLocaleString() + ' characters';
+  }
+
+  // ── Score color ──
+  function scoreColor(s) {
+    if (s >= 75) return '#00FF94';
+    if (s >= 50) return '#FFD060';
+    return '#FF6060';
+  }
+
+  // ── Main Analyze ──
+  async function analyze() {
+    const resume = document.getElementById('resume-input').value.trim();
+    const job    = document.getElementById('job-input').value.trim();
+    const errBox = document.getElementById('error-box');
+    const btn    = document.getElementById('analyze-btn');
+
+    errBox.classList.remove('show');
+
+    if (!resume || !job) {
+      errBox.textContent = 'Please paste both your resume and the job description.';
+      errBox.classList.add('show');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Analyzing your resume…';
+    document.getElementById('results').classList.remove('show');
+
+    const prompt = `You are an expert resume coach and ATS specialist. Analyze the resume against the job description.
+
+RESUME:
+${resume}
+
+JOB DESCRIPTION:
+${job}
+
+Return ONLY valid JSON (no markdown, no explanation) with this exact shape:
+{
+  "score": <number 0-100>,
+  "verdict": "<2-3 sentence overall assessment>",
+  "matched_keywords": ["<keyword>", ...],
+  "missing_keywords": ["<keyword>", ...],
+  "suggestions": [
+    {"icon": "🔧", "text": "<actionable suggestion>"},
+    ...
+  ]
+}
+
+Rules:
+- score reflects how well the resume matches the job
+- matched_keywords: up to 10 important skills/keywords from the job that appear in the resume
+- missing_keywords: up to 8 important skills/keywords from the job MISSING from the resume
+- suggestions: 4-5 specific, actionable improvements
+- Keep all text concise and direct`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      const text = (data.content || []).map(b => b.text || '').join('');
+      const clean = text.replace(/```json|```/g, '').trim();
+      const r = JSON.parse(clean);
+      renderResults(r);
+
+    } catch (e) {
+      errBox.textContent = 'Something went wrong. Please try again.';
+      errBox.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Analyze My Resume';
+    }
+  }
+
+  function renderResults(r) {
+    const score = r.score || 0;
+    const color = scoreColor(score);
+
+    // Score
+    document.getElementById('score-num').textContent = score + '/100';
+    document.getElementById('score-num').style.color = color;
+    setTimeout(() => {
+      document.getElementById('bar-fill').style.width = score + '%';
+      document.getElementById('bar-fill').style.background = color;
+    }, 100);
+
+    // Verdict
+    const vb = document.getElementById('verdict-box');
+    vb.textContent = r.verdict || '';
+    vb.className = 'verdict ' + (score >= 75 ? 'verdict-good' : score >= 50 ? 'verdict-ok' : 'verdict-bad');
+
+    // Matched keywords
+    const mt = document.getElementById('matched-tags');
+    mt.innerHTML = (r.matched_keywords || []).map(k =>
+      `<span class="tag tag-match">${k}</span>`).join('');
+    document.getElementById('matched-section').style.display =
+      (r.matched_keywords?.length) ? 'block' : 'none';
+
+    // Missing keywords
+    const ms = document.getElementById('missing-tags');
+    ms.innerHTML = (r.missing_keywords || []).map(k =>
+      `<span class="tag tag-miss">${k}</span>`).join('');
+    document.getElementById('missing-section').style.display =
+      (r.missing_keywords?.length) ? 'block' : 'none';
+
+    // Suggestions
+    const sl = document.getElementById('sug-list');
+    sl.innerHTML = (r.suggestions || []).map(s =>
+      `<div class="sug-item"><span class="sug-icon">${s.icon}</span><span>${s.text}</span></div>`
+    ).join('');
+
+    // Show results & scroll
+    const results = document.getElementById('results');
+    results.classList.add('show');
+    setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+</script>
+</body>
+</html>
